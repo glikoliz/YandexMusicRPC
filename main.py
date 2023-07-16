@@ -5,12 +5,10 @@ from datetime import datetime
 import re
 import requests
 import configparser
-
+import os
 #
 import token_ym
 import token_ds
-
-
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -67,23 +65,37 @@ def GET_TOKEN_DISCORD():
 def GET_TOKEN_MUSIC():
     if len(config.get("MusicClient", "key")) <= 5:
         print("Ключа нема")
-        config.set("MusicClient", "key", token_ym.get_token())
-        with open("conf.ini", "w") as configfile:
-            config.write(configfile)
+        try:
+            config.set("MusicClient", "key", token_ym.get_token())
+            with open("conf.ini", "w") as configfile:
+                config.write(configfile)
+        except:
+            print("Не получилось вытащить токен")
 
 
 def init():  # читает все токены
+
     global headers, client, RPC, config
     config = configparser.ConfigParser()
     config.read("conf.ini")
+    if len(config.get("MusicClient","key")) <= 5:
+        print("[Яндекс Музыка] Установка необходимых пакетов.")
+        os.system('pip install yandex-music --upgrade')
+        os.system('pip install selenium')
+        os.system('pip install pypresence')
+        os.system('pip install yandex_music')
+        os.system('pip install webdriver_manager')
     GET_TOKEN_MUSIC()
     GET_TOKEN_DISCORD()
     RPC = Presence(config.get("DSPresence", "key"))
     RPC.connect()
     client = Client(config.get("MusicClient", "key")).init()
+    # clear = lambda: os.system('cls')
+    # clear()
     headers = {
         "Authorization": config.get("DSToken", "key"),
     }
+
 
 def update_status(text):
     requests.patch(
@@ -95,8 +107,15 @@ def update_status(text):
 def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
-
 init()
+status_text=""
+def_status=requests.get("https://discord.com/api/v9/users/@me/settings",headers=headers)
+if def_status.status_code == 200:
+    status_data = def_status.json()
+    custom_status = status_data['custom_status']
+    if custom_status:
+        status_text = custom_status['text']
+        print(f'Текущий статус: {status_text}')
 prev_track = None
 i = 0
 text = False
@@ -138,5 +157,6 @@ while True:
     except Exception as error:
         if isError == False:
             isError = True
+            update_status(status_text)
             print_err(error)
         # time.sleep(5)
