@@ -5,9 +5,13 @@ from datetime import datetime
 import re
 import requests
 import configparser
+
+#
 import token_ym
+import token_ds
 
 
+#
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
     if match:
@@ -17,7 +21,7 @@ def time_to_milliseconds(time_string):
     return None
 
 
-def update_presence(track): #Обновляет статус активности
+def update_presence(track):  # Обновляет статус активности
     dstart = time.time()  # начало трека в мс
     dsend = track["duration_ms"] / 1000 + time.time()  # конец трека в мс
 
@@ -37,23 +41,49 @@ def update_presence(track): #Обновляет статус активност�
     )
 
 
-def init(): #читает все токены
-    global headers, client, RPC
-    # читает токен ЯМ из конфига(либо получает его при отсутствии)
-    config = configparser.ConfigParser()
-    config.read("conf.ini")
+def GET_TOKEN_DISCORD():
+    if len(config.get("DSToken", "key")) <= 5:
+        print("ДС токен не обнаружен")
+        dst = ""
+        try:
+            dst = token_ds.get_token()
+        except:
+            print("Не удалось подцепить токен")
+        # print(requests.get('https://discord.com/api/v9/users/@me', headers={"Authorization": dst,}))
+        if (
+            requests.get(
+                "https://discord.com/api/v9/users/@me",
+                headers={
+                    "Authorization": dst,
+                },
+            ).status_code
+        ) == 200:
+            print("ДС ТОКЕН УСПЕШНО СПИЗЖЕН")
+            config.set("DSToken", "key", dst)
+            with open("conf.ini", "w") as configfile:
+                config.write(configfile)
+
+
+def GET_TOKEN_MUSIC():
     if len(config.get("MusicClient", "key")) <= 5:
         print("Ключа нема")
         config.set("MusicClient", "key", token_ym.get_token())
         with open("conf.ini", "w") as configfile:
             config.write(configfile)
+
+
+def init():  # читает все токены
+    global headers, client, RPC, config
+    config = configparser.ConfigParser()
+    config.read("conf.ini")
+    GET_TOKEN_MUSIC()
+    GET_TOKEN_DISCORD()
     RPC = Presence(config.get("DSPresence", "key"))
     RPC.connect()
     client = Client(config.get("MusicClient", "key")).init()
     headers = {
         "Authorization": config.get("DSToken", "key"),
     }
-
 
 def update_status(text):
     requests.patch(
@@ -62,9 +92,8 @@ def update_status(text):
         json={"custom_status": {"text": text}},
     )
 
-
 def print_err(error):
-    print(f"Ошибка: {str(error)} // {datetime.now()}")
+    print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
 
 init()
