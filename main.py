@@ -6,12 +6,11 @@ import re
 import requests
 import configparser
 import os
-
+import contextlib
+import threading
 #
 import token_ym
 import token_ds
-
-
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -33,7 +32,7 @@ def update_presence(track):  # Обновляет статус активнос�
         small_text="ЯнДеКс МуЗыКа",
         details=track.artists_name()[0],
         state=track.title,
-        buttons=[{"label": "Кнопка", "url": "https://s.anizam.ru/l/bIY"}],
+        buttons=[{"label": "Кнопка", "url": f"https://music.yandex.ru/album/{track['albums'][0]['id']}/track/{track['id']}/"}],
         start=dstart,
         end=dsend,
     )
@@ -97,9 +96,8 @@ def init():  # читает все токены
         }
     RPC = Presence(config.get("TOKENS", "DSPresence"))
     RPC.connect()
-    client = Client(config.get("TOKENS", "MusicClient")).init()
-    # clear = lambda: os.system('cls')
-    # clear()
+    with contextlib.redirect_stdout(None):
+        client = Client(config.get("TOKENS", "MusicClient")).init()
 
 
 def update_status(text):
@@ -111,9 +109,9 @@ def update_status(text):
         )
 
 
+
 def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
-
 
 def get_status():
     if(change_status):
@@ -136,20 +134,19 @@ def settings(config):
     try:
         change_status = config.getboolean("SETTINGS", "change_status")
         get_log=config.getboolean("SETTINGS", "get_log")
-        print(change_status)
-        print(get_log)
+        print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         print("Не получилось получить значения из conf.ini")
 
-
 init()
 status_text = get_status()
+# help('modules')
 prev_track = None
 i = 0
 text = False
 isError = False
 while True:
-    try:
+    # try:
         last_track = (
             client.queue(client.queues_list()[0].id).get_current_track().fetch_track()
         )  # получает текущий трек
@@ -157,10 +154,14 @@ while True:
         # при смене трека
         if prev_track != last_track:
             start = time.time()
+            # threading.Thread(target=update_presence(last_track)).start()
             update_presence(last_track)
             if(change_status):
                 try:
+                    start_time = time.time()
+                    # threading.Thread(target=update_status("")).start()
                     update_status("")
+
                     lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
                     mil = time_to_milliseconds(lyrics[0])
                     text = True
@@ -170,11 +171,14 @@ while True:
                         print("У данной песни отсутствует текст")
             prev_track = last_track
             i = 0
+            end_time = time.time()
+            execution_time = end_time - start
+            print(f"Время выполнения: {execution_time} секунд")
         # выводит текст в описание
         if(change_status):
             if text:
                 now = time.time()
-                if (now - start + 1) * 1000 > mil:
+                if (now - start + execution_time) * 1000 > mil:
                     try:
                         update_status(lyrics[i].split("]")[1].strip())
                     except Exception as error:
@@ -185,9 +189,9 @@ while True:
                     except:
                         text = False
         isError = False
-    except Exception as error:
-        if isError == False:
-            isError = True
-            update_status(status_text)
-            print_err(error)
+    # except Exception as error:
+    #     if isError == False:
+    #         isError = True
+    #         update_status(status_text)
+    #         print_err(error)
         # time.sleep(5)
