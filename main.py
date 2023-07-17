@@ -40,7 +40,7 @@ def update_presence(track):  # Обновляет статус активнос�
 
 
 def GET_TOKEN_DISCORD():
-    if len(config.get("DSToken", "key")) <= 5:
+    if len(config.get("TOKENS", "DSToken")) <= 5:
         print("ДС токен не обнаружен")
         dst = ""
         try:
@@ -56,17 +56,17 @@ def GET_TOKEN_DISCORD():
                 },
             ).status_code
         ) == 200:
-            print("ДС ТОКЕН УСПЕШНО СПИЗЖЕН")
-            config.set("DSToken", "key", dst)
+            print("ДС токен успешно получен")
+            config.set("TOKENS", "DSToken", dst)
             with open("conf.ini", "w") as configfile:
                 config.write(configfile)
 
 
 def GET_TOKEN_MUSIC():
-    if len(config.get("MusicClient", "key")) <= 5:
+    if len(config.get("TOKENS", "MusicClient")) <= 5:
         print("Ключа нема")
         try:
-            config.set("MusicClient", "key", token_ym.get_token())
+            config.set("TOKENS", "MusicClient", token_ym.get_token())
             with open("conf.ini", "w") as configfile:
                 config.write(configfile)
         except:
@@ -78,7 +78,7 @@ def init():  # читает все токены
     global headers, client, RPC, config
     config = configparser.ConfigParser()
     config.read("conf.ini")
-    if len(config.get("MusicClient","key")) <= 5:
+    if len(config.get("TOKENS","MusicClient")) <= 5:
         print("[Яндекс Музыка] Установка необходимых пакетов.")
         os.system('pip install yandex-music --upgrade')
         os.system('pip install selenium')
@@ -87,13 +87,13 @@ def init():  # читает все токены
         os.system('pip install webdriver_manager')
     GET_TOKEN_MUSIC()
     GET_TOKEN_DISCORD()
-    RPC = Presence(config.get("DSPresence", "key"))
+    RPC = Presence(config.get("TOKENS", "DSPresence"))
     RPC.connect()
-    client = Client(config.get("MusicClient", "key")).init()
+    client = Client(config.get("TOKENS", "MusicClient")).init()
     # clear = lambda: os.system('cls')
     # clear()
     headers = {
-        "Authorization": config.get("DSToken", "key"),
+        "Authorization": config.get("TOKENS", "DSToken"),
     }
 
 
