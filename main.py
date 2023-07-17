@@ -7,7 +7,9 @@ import requests
 import configparser
 import os
 import contextlib
-import threading
+from threading import Thread
+# import signal
+import keyboard
 #
 import token_ym
 import token_ds
@@ -137,61 +139,72 @@ def settings(config):
         print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         print("Не получилось получить значения из conf.ini")
-
+def brek():
+    print("dasdsadsa")
+start=time.time()
 init()
+end_time = time.time()
+execution_time = end_time - start
+print(f"Время выполнения: {execution_time} секунд")
 status_text = get_status()
-# help('modules')
-prev_track = None
-i = 0
-text = False
-isError = False
-while True:
-    # try:
-        last_track = (
-            client.queue(client.queues_list()[0].id).get_current_track().fetch_track()
-        )  # получает текущий трек
-        cover = last_track.get_cover_url()  # ссылка на обложку текущего трека
-        # при смене трека
-        if prev_track != last_track:
-            start = time.time()
-            # threading.Thread(target=update_presence(last_track)).start()
-            update_presence(last_track)
-            if(change_status):
-                try:
-                    start_time = time.time()
-                    # threading.Thread(target=update_status("")).start()
-                    update_status("")
 
-                    lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
-                    mil = time_to_milliseconds(lyrics[0])
-                    text = True
-                except:
-                    text = False
-                    if(get_log):
-                        print("У данной песни отсутствует текст")
-            prev_track = last_track
-            i = 0
-            end_time = time.time()
-            execution_time = end_time - start
-            print(f"Время выполнения: {execution_time} секунд")
-        # выводит текст в описание
-        if(change_status):
-            if text:
-                now = time.time()
-                if (now - start + execution_time) * 1000 > mil:
+print("Зажмите q для выхода")
+def main():
+    prev_track = None
+    i = 0
+    text = False
+    isError = False
+    while True:
+        try:
+            last_track = (
+                client.queue(client.queues_list()[0].id).get_current_track().fetch_track()
+            )  # получает текущий трек
+            cover = last_track.get_cover_url()  # ссылка на обложку текущего трека
+            # при смене трека
+            if prev_track != last_track:
+                start = time.time()
+                Thread(target=update_presence, args=[last_track]).start()
+                # update_presence(last_track)
+                if(change_status):
                     try:
-                        update_status(lyrics[i].split("]")[1].strip())
-                    except Exception as error:
-                        print_err(error)
-                    i += 1
-                    try:
-                        mil = time_to_milliseconds(lyrics[i])
+                        start_time = time.time()
+                        Thread(target=update_status, args=[""]).start()
+                        # update_status("")
+                        lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
+                        mil = time_to_milliseconds(lyrics[0])
+                        text = True
                     except:
                         text = False
-        isError = False
-    # except Exception as error:
-    #     if isError == False:
-    #         isError = True
-    #         update_status(status_text)
-    #         print_err(error)
-        # time.sleep(5)
+                        if(get_log):
+                            print("У данной песни отсутствует текст")
+                prev_track = last_track
+                i = 0
+                end_time = time.time()
+                execution_time = end_time - start
+                print(f"Время выполнения: {execution_time} секунд")
+            # выводит текст в описание
+            if(change_status):
+                if text:
+                    now = time.time()
+                    if (now - start + execution_time) * 1000 > mil:
+                        try:
+                            Thread(target=update_status, args=[lyrics[i].split("]")[1].strip()]).start()
+                            # update_status(lyrics[i].split("]")[1].strip())
+                        except Exception as error:
+                            print_err(error)
+                        i += 1
+                        try:
+                            mil = time_to_milliseconds(lyrics[i])
+                        except:
+                            text = False
+            isError = False
+        except Exception as error:
+            if isError == False:
+                isError = True
+                update_status(status_text)
+                print_err(error)
+            time.sleep(5)
+        if keyboard.is_pressed('q'):
+            update_status(status_text)
+            break
+main()
