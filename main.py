@@ -8,11 +8,13 @@ import configparser
 import os
 import contextlib
 from threading import Thread
-# import signal
 import keyboard
+
 #
 import token_ym
 import token_ds
+
+
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -34,11 +36,16 @@ def update_presence(track):  # Обновляет статус активнос�
         small_text="ЯнДеКс МуЗыКа",
         details=track.artists_name()[0],
         state=track.title,
-        buttons=[{"label": "Кнопка", "url": f"https://music.yandex.ru/album/{track['albums'][0]['id']}/track/{track['id']}/"}],
+        buttons=[
+            {
+                "label": "Кнопка",
+                "url": f"https://music.yandex.ru/album/{track['albums'][0]['id']}/track/{track['id']}/",
+            }
+        ],
         start=dstart,
         end=dsend,
     )
-    if(get_log):
+    if get_log:
         print(
             f"Новый трек: {track.artists_name()[0]} - {track['title']} // {str(datetime.now()).split('.')[0]}"
         )
@@ -103,7 +110,7 @@ def init():  # читает все токены
 
 
 def update_status(text):
-    if(change_status):
+    if change_status:
         requests.patch(
             "https://discord.com/api/v9/users/@me/settings",
             headers=headers,
@@ -111,12 +118,12 @@ def update_status(text):
         )
 
 
-
 def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
+
 def get_status():
-    if(change_status):
+    if change_status:
         def_status = requests.get(
             "https://discord.com/api/v9/users/@me/settings", headers=headers
         )
@@ -135,21 +142,23 @@ def settings(config):
     global change_status, get_log
     try:
         change_status = config.getboolean("SETTINGS", "change_status")
-        get_log=config.getboolean("SETTINGS", "get_log")
+        get_log = config.getboolean("SETTINGS", "get_log")
         print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         print("Не получилось получить значения из conf.ini")
-def brek():
-    print("dasdsadsa")
-start=time.time()
-init()
-end_time = time.time()
-execution_time = end_time - start
-print(f"Время выполнения: {execution_time} секунд")
-status_text = get_status()
 
-print("Зажмите q для выхода")
+
+
+
+
 def main():
+    start = time.time()
+    init()
+    end_time = time.time()
+    execution_time = end_time - start
+    print(f"Время Инициализации: {execution_time} секунд")
+    status_text = get_status()
+    print("Зажмите q для выхода")
     prev_track = None
     i = 0
     text = False
@@ -157,17 +166,17 @@ def main():
     while True:
         try:
             last_track = (
-                client.queue(client.queues_list()[0].id).get_current_track().fetch_track()
-            )  # получает текущий трек
-            cover = last_track.get_cover_url()  # ссылка на обложку текущего трека
-            # при смене трека
+                client.queue(client.queues_list()[0].id)
+                .get_current_track()
+                .fetch_track()
+            )
             if prev_track != last_track:
                 start = time.time()
                 Thread(target=update_presence, args=[last_track]).start()
                 # update_presence(last_track)
-                if(change_status):
+                if change_status:
                     try:
-                        start_time = time.time()
+                        # start_time = time.time()
                         Thread(target=update_status, args=[""]).start()
                         # update_status("")
                         lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
@@ -175,20 +184,22 @@ def main():
                         text = True
                     except:
                         text = False
-                        if(get_log):
+                        if get_log:
                             print("У данной песни отсутствует текст")
                 prev_track = last_track
                 i = 0
                 end_time = time.time()
                 execution_time = end_time - start
                 print(f"Время выполнения: {execution_time} секунд")
-            # выводит текст в описание
-            if(change_status):
+            if change_status:
                 if text:
                     now = time.time()
                     if (now - start + execution_time) * 1000 > mil:
                         try:
-                            Thread(target=update_status, args=[lyrics[i].split("]")[1].strip()]).start()
+                            Thread(
+                                target=update_status,
+                                args=[lyrics[i].split("]")[1].strip()],
+                            ).start()
                             # update_status(lyrics[i].split("]")[1].strip())
                         except Exception as error:
                             print_err(error)
@@ -204,7 +215,7 @@ def main():
                 update_status(status_text)
                 print_err(error)
             time.sleep(5)
-        if keyboard.is_pressed('q'):
+        if keyboard.is_pressed("q"):
             update_status(status_text)
             break
 main()
