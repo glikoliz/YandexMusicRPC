@@ -6,9 +6,12 @@ import re
 import requests
 import configparser
 import os
+
 #
 import token_ym
 import token_ds
+
+
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -34,9 +37,10 @@ def update_presence(track):  # Обновляет статус активнос�
         start=dstart,
         end=dsend,
     )
-    print(
-        f"Новый трек: {track.artists_name()[0]} - {track['title']} // {str(datetime.now()).split('.')[0]}"
-    )
+    if(get_log):
+        print(
+            f"Новый трек: {track.artists_name()[0]} - {track['title']} // {str(datetime.now()).split('.')[0]}"
+        )
 
 
 def GET_TOKEN_DISCORD():
@@ -74,48 +78,72 @@ def GET_TOKEN_MUSIC():
 
 
 def init():  # читает все токены
-
     global headers, client, RPC, config
     config = configparser.ConfigParser()
     config.read("conf.ini")
-    if len(config.get("TOKENS","MusicClient")) <= 5:
+    settings(config)
+    if len(config.get("TOKENS", "MusicClient")) <= 5:
         print("[Яндекс Музыка] Установка необходимых пакетов.")
-        os.system('pip install yandex-music --upgrade')
-        os.system('pip install selenium')
-        os.system('pip install pypresence')
-        os.system('pip install yandex_music')
-        os.system('pip install webdriver_manager')
+        os.system("pip install yandex-music --upgrade")
+        os.system("pip install selenium")
+        os.system("pip install pypresence")
+        os.system("pip install yandex_music")
+        os.system("pip install webdriver_manager")
     GET_TOKEN_MUSIC()
-    GET_TOKEN_DISCORD()
+    if change_status:
+        GET_TOKEN_DISCORD()
+        headers = {
+            "Authorization": config.get("TOKENS", "DSToken"),
+        }
     RPC = Presence(config.get("TOKENS", "DSPresence"))
     RPC.connect()
     client = Client(config.get("TOKENS", "MusicClient")).init()
     # clear = lambda: os.system('cls')
     # clear()
-    headers = {
-        "Authorization": config.get("TOKENS", "DSToken"),
-    }
 
 
 def update_status(text):
-    requests.patch(
-        "https://discord.com/api/v9/users/@me/settings",
-        headers=headers,
-        json={"custom_status": {"text": text}},
-    )
+    if(change_status):
+        requests.patch(
+            "https://discord.com/api/v9/users/@me/settings",
+            headers=headers,
+            json={"custom_status": {"text": text}},
+        )
+
 
 def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
+
+def get_status():
+    if(change_status):
+        def_status = requests.get(
+            "https://discord.com/api/v9/users/@me/settings", headers=headers
+        )
+        if def_status.status_code == 200:
+            status_data = def_status.json()
+            custom_status = status_data["custom_status"]
+            if custom_status:
+                status_text = custom_status["text"]
+                # print(f"Текущий статус: {status_text}")
+                return status_text
+    else:
+        print("Изменение статуса отключено")
+
+
+def settings(config):
+    global change_status, get_log
+    try:
+        change_status = config.getboolean("SETTINGS", "change_status")
+        get_log=config.getboolean("SETTINGS", "get_log")
+        print(change_status)
+        print(get_log)
+    except:
+        print("Не получилось получить значения из conf.ini")
+
+
 init()
-status_text=""
-def_status=requests.get("https://discord.com/api/v9/users/@me/settings",headers=headers)
-if def_status.status_code == 200:
-    status_data = def_status.json()
-    custom_status = status_data['custom_status']
-    if custom_status:
-        status_text = custom_status['text']
-        print(f'Текущий статус: {status_text}')
+status_text = get_status()
 prev_track = None
 i = 0
 text = False
@@ -130,29 +158,32 @@ while True:
         if prev_track != last_track:
             start = time.time()
             update_presence(last_track)
-            try:
-                update_status("")
-                lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
-                mil = time_to_milliseconds(lyrics[0])
-                text = True
-            except:
-                text = False
-                print("У данной песни отсутствует текст")
+            if(change_status):
+                try:
+                    update_status("")
+                    lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
+                    mil = time_to_milliseconds(lyrics[0])
+                    text = True
+                except:
+                    text = False
+                    if(get_log):
+                        print("У данной песни отсутствует текст")
             prev_track = last_track
             i = 0
         # выводит текст в описание
-        if text:
-            now = time.time()
-            if (now - start + 1) * 1000 > mil:
-                try:
-                    update_status(lyrics[i].split("]")[1].strip())
-                except Exception as error:
-                    print_err(error)
-                i += 1
-                try:
-                    mil = time_to_milliseconds(lyrics[i])
-                except:
-                    text = False
+        if(change_status):
+            if text:
+                now = time.time()
+                if (now - start + 1) * 1000 > mil:
+                    try:
+                        update_status(lyrics[i].split("]")[1].strip())
+                    except Exception as error:
+                        print_err(error)
+                    i += 1
+                    try:
+                        mil = time_to_milliseconds(lyrics[i])
+                    except:
+                        text = False
         isError = False
     except Exception as error:
         if isError == False:
