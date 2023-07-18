@@ -10,6 +10,7 @@ import contextlib
 from threading import Thread
 import keyboard
 import tkinter as tk
+import timeit
 #
 import token_ym
 import token_ds
@@ -156,7 +157,7 @@ def settings(config):
             headers = {
                 "Authorization": config.get("TOKENS", "DSToken"),
             }
-        print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
+        # print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         print("Не получилось получить значения из conf.ini")
 
@@ -214,28 +215,28 @@ def main():
             print_err(error)
         time.sleep(5)
 
-def getval(): #нужен для остановки функции loop
-    return runn
+def get_running(): #нужен для остановки функции loop
+    return running
 def main_loop():
     global status_text
     while(True):
         main()
-        if(getval()==False):
+        if(get_running()==False):
             print("STOP")
             print(update_status(status_text))
             print(status_text)
             RPC.clear()
             break
-def chng():
-    global runn
-    runn=False
+def stop_loop():
+    global running
+    running=False
 
 def start_everything():
-    global runn
+    global running
     global prev_track
-    if(not runn):
+    if(not running):
         prev_track=None
-        runn=True
+        running=True
         Thread(target=main_loop).start()
 
 def change_config_status():
@@ -246,24 +247,23 @@ def change_config_status():
         with open("conf.ini", "w") as configfile:
             config.write(configfile)
         settings(config)
+
 headers=None
-start = time.time()
-init()
-end_time = time.time()
-execution_time = end_time - start
-print(f"Время Инициализации: {execution_time} секунд")
-global status_text
-status_text = get_status()
-print("Зажмите q для выхода")
 prev_track = None
 i = 0
 text = False
 isError = False
-runn=False
+running=False
+
+start = time.time()
+# timeit.timeit(init)
+init()
+print(f"Время Инициализации: {time.time()-start} секунд")
+
+status_text = get_status()
+
 config = configparser.ConfigParser()
 config.read("conf.ini")
-
-
 
 root = tk.Tk()
 root.geometry('300x300')
@@ -273,16 +273,10 @@ var = tk.BooleanVar(value=config.getboolean("SETTINGS", "change_status"))
 checkbox1=tk.Checkbutton(root, text="Транслировать текст песни в статус", variable=var, command=change_config_status)
 checkbox1.pack()
 
-# checkbox1=tk.Checkbutton(root, text="change status", variable=var, command=change_config_status)
-# checkbox1.pack()
-
 button1=tk.Button(root, text="start", command=start_everything)
 button1.pack()
 
-button2=tk.Button(root, text="stop", command=chng)
+button2=tk.Button(root, text="stop", command=stop_loop)
 button2.pack()
 
 root.mainloop()
-# time.sleep(10)
-# runn=False
-# main()
