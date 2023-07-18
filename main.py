@@ -9,7 +9,7 @@ import os
 import contextlib
 from threading import Thread
 import keyboard
-
+import tkinter as tk
 #
 import token_ym
 import token_ds
@@ -110,7 +110,7 @@ def init():  # читает все токены
 
 
 def update_status(text):
-    if change_status:
+    if change_status and headers:
         requests.patch(
             "https://discord.com/api/v9/users/@me/settings",
             headers=headers,
@@ -148,74 +148,129 @@ def settings(config):
         print("Не получилось получить значения из conf.ini")
 
 
-
-
-
 def main():
-    start = time.time()
-    init()
-    end_time = time.time()
-    execution_time = end_time - start
-    print(f"Время Инициализации: {execution_time} секунд")
-    status_text = get_status()
-    print("Зажмите q для выхода")
-    prev_track = None
-    i = 0
-    text = False
-    isError = False
-    while True:
-        try:
-            last_track = (
-                client.queue(client.queues_list()[0].id)
-                .get_current_track()
-                .fetch_track()
-            )
-            if prev_track != last_track:
-                start = time.time()
-                Thread(target=update_presence, args=[last_track]).start()
-                # update_presence(last_track)
-                if change_status:
+    global isError, last_track, prev_track, lyrics, mil, text, start, execution_time, i
+    try:
+        last_track = (
+            client.queue(client.queues_list()[0].id)
+            .get_current_track()
+            .fetch_track()
+        )
+        if prev_track != last_track:
+            start = time.time()
+            Thread(target=update_presence, args=[last_track]).start()
+            # update_presence(last_track)
+            if change_status:
+                try:
+                    # start_time = time.time()
+                    Thread(target=update_status, args=[""]).start()
+                    # update_status("")
+                    lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
+                    mil = time_to_milliseconds(lyrics[0])
+                    text = True
+                except:
+                    text = False
+                    if get_log:
+                        print("У данной песни отсутствует текст")
+            prev_track = last_track
+            i = 0
+            end_time = time.time()
+            execution_time = end_time - start
+            print(f"Время выполнения: {execution_time} секунд")
+        if change_status:
+            if text:
+                now = time.time()
+                if (now - start + execution_time) * 1000 > mil:
                     try:
-                        # start_time = time.time()
-                        Thread(target=update_status, args=[""]).start()
-                        # update_status("")
-                        lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
-                        mil = time_to_milliseconds(lyrics[0])
-                        text = True
+                        Thread(
+                            target=update_status,
+                            args=[lyrics[i].split("]")[1].strip()],
+                        ).start()
+                        # update_status(lyrics[i].split("]")[1].strip())
+                    except Exception as error:
+                        print_err(error)
+                    i += 1
+                    try:
+                        mil = time_to_milliseconds(lyrics[i])
                     except:
                         text = False
-                        if get_log:
-                            print("У данной песни отсутствует текст")
-                prev_track = last_track
-                i = 0
-                end_time = time.time()
-                execution_time = end_time - start
-                print(f"Время выполнения: {execution_time} секунд")
-            if change_status:
-                if text:
-                    now = time.time()
-                    if (now - start + execution_time) * 1000 > mil:
-                        try:
-                            Thread(
-                                target=update_status,
-                                args=[lyrics[i].split("]")[1].strip()],
-                            ).start()
-                            # update_status(lyrics[i].split("]")[1].strip())
-                        except Exception as error:
-                            print_err(error)
-                        i += 1
-                        try:
-                            mil = time_to_milliseconds(lyrics[i])
-                        except:
-                            text = False
-            isError = False
-        except Exception as error:
-            if isError == False:
-                isError = True
-                update_status(status_text)
-                print_err(error)
-            time.sleep(5)
-        if keyboard.is_pressed("q"):
+        isError = False
+    except Exception as error:
+        if isError == False:
+            isError = True
             update_status(status_text)
+            print_err(error)
+        time.sleep(5)
+    if keyboard.is_pressed("q"):
+        update_status(status_text)
+
+def getval():
+    global runn
+    return runn
+def lop():
+    global status_text
+    while(True):
+        main()
+        if(getval()==False):
+            print("STOP")
+            update_status(status_text)
+            RPC.clear()
             break
-main()
+def chng():
+    global runn
+    runn=False
+
+
+start = time.time()
+init()
+end_time = time.time()
+execution_time = end_time - start
+print(f"Время Инициализации: {execution_time} секунд")
+status_text = get_status()
+print("Зажмите q для выхода")
+prev_track = None
+i = 0
+text = False
+isError = False
+runn=False
+config = configparser.ConfigParser()
+config.read("conf.ini")
+def start_everything():
+    global runn
+    global prev_track
+    if(not runn):
+        prev_track=None
+        runn=True
+        Thread(target=lop).start()
+
+def change_config_status():
+    global config, var
+    if(config.getboolean("SETTINGS", "change_status")!=var.get()):
+        print()
+        config.set("SETTINGS", "change_status",str(var.get()))
+        with open("conf.ini", "w") as configfile:
+            config.write(configfile)
+        settings(config)
+
+
+root = tk.Tk()
+root.geometry('300x300')
+
+var = tk.BooleanVar(value=config.getboolean("SETTINGS", "change_status"))
+
+checkbox1=tk.Checkbutton(root, text="change status", variable=var, command=change_config_status)
+checkbox1.pack()
+
+# checkbox1=tk.Checkbutton(root, text="change status", variable=var, command=change_config_status)
+# checkbox1.pack()
+
+button1=tk.Button(root, text="start", command=start_everything)
+button1.pack()
+
+button2=tk.Button(root, text="stop", command=chng)
+button2.pack()
+
+root.mainloop()
+# time.sleep(10)
+# runn=False
+# main()
