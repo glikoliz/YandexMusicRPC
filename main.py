@@ -28,7 +28,6 @@ def time_to_milliseconds(time_string):
 def update_presence(track):  # Обновляет статус активности
     dstart = time.time()  # начало трека в мс
     dsend = track["duration_ms"] / 1000 + time.time()  # конец трека в мс
-
     RPC.update(
         large_image=track.get_cover_url(),
         large_text="Чё смотришь",
@@ -51,7 +50,7 @@ def update_presence(track):  # Обновляет статус активнос�
         )
 
 
-def GET_TOKEN_DISCORD():
+def GET_TOKEN_DISCORD(): #получает дс токен и записывает в конфиг
     if len(config.get("TOKENS", "DSToken")) <= 5:
         print("ДС токен не обнаружен")
         dst = ""
@@ -74,7 +73,7 @@ def GET_TOKEN_DISCORD():
                 config.write(configfile)
 
 
-def GET_TOKEN_MUSIC():
+def GET_TOKEN_MUSIC(): #получает токен ям и записывает в конфиг
     if len(config.get("TOKENS", "MusicClient")) <= 5:
         print("Ключа нема")
         try:
@@ -89,40 +88,48 @@ def init():  # читает все токены
     global headers, client, RPC, config
     config = configparser.ConfigParser()
     config.read("conf.ini")
-    settings(config)
     if len(config.get("TOKENS", "MusicClient")) <= 5:
         print("[Яндекс Музыка] Установка необходимых пакетов.")
         os.system("pip install yandex-music --upgrade")
         os.system("pip install selenium")
         os.system("pip install pypresence")
         os.system("pip install yandex_music")
-        os.system("pip install webdriver_manager")
+        os.system("pip install webdriver_manager")    
+    settings(config) #читает настройки с конфига
+
     GET_TOKEN_MUSIC()
     if change_status:
         GET_TOKEN_DISCORD()
         headers = {
             "Authorization": config.get("TOKENS", "DSToken"),
         }
+    else:
+        headers=None
     RPC = Presence(config.get("TOKENS", "DSPresence"))
     RPC.connect()
     with contextlib.redirect_stdout(None):
         client = Client(config.get("TOKENS", "MusicClient")).init()
 
 
-def update_status(text):
-    if change_status and headers:
-        requests.patch(
-            "https://discord.com/api/v9/users/@me/settings",
-            headers=headers,
-            json={"custom_status": {"text": text}},
-        )
+def update_status(text): #обновляет статус
+    global headers
+    try:
+        if change_status and headers:
+            requests.patch(
+                "https://discord.com/api/v9/users/@me/settings",
+                headers=headers,
+                json={"custom_status": {"text": text}},
+            )
+            return True
+    except:
+        return False
 
 
 def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
 
-def get_status():
+def get_status(): #получает текущий статус(до изменений)
     if change_status:
         def_status = requests.get(
             "https://discord.com/api/v9/users/@me/settings", headers=headers
@@ -139,10 +146,16 @@ def get_status():
 
 
 def settings(config):
-    global change_status, get_log
+    global change_status, get_log, headers
     try:
         change_status = config.getboolean("SETTINGS", "change_status")
         get_log = config.getboolean("SETTINGS", "get_log")
+        # print(headers=="{'Authorization': ''}")
+        if(change_status and headers==None):
+            GET_TOKEN_DISCORD()
+            headers = {
+                "Authorization": config.get("TOKENS", "DSToken"),
+            }
         print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         print("Не получилось получить значения из conf.ini")
@@ -156,7 +169,7 @@ def main():
             .get_current_track()
             .fetch_track()
         )
-        if prev_track != last_track:
+        if prev_track != last_track: #если трек меняется
             start = time.time()
             Thread(target=update_presence, args=[last_track]).start()
             # update_presence(last_track)
@@ -177,23 +190,22 @@ def main():
             end_time = time.time()
             execution_time = end_time - start
             print(f"Время выполнения: {execution_time} секунд")
-        if change_status:
-            if text:
-                now = time.time()
-                if (now - start + execution_time) * 1000 > mil:
-                    try:
-                        Thread(
-                            target=update_status,
-                            args=[lyrics[i].split("]")[1].strip()],
-                        ).start()
-                        # update_status(lyrics[i].split("]")[1].strip())
-                    except Exception as error:
-                        print_err(error)
-                    i += 1
-                    try:
-                        mil = time_to_milliseconds(lyrics[i])
-                    except:
-                        text = False
+        if change_status and text: #транслирует текст в статус
+            now = time.time()
+            if (now - start + execution_time) * 1000 > mil:
+                try:
+                    Thread(
+                        target=update_status,
+                        args=[lyrics[i].split("]")[1].strip()],
+                    ).start()
+                    # update_status(lyrics[i].split("]")[1].strip())
+                except Exception as error:
+                    print_err(error)
+                i += 1
+                try:
+                    mil = time_to_milliseconds(lyrics[i])
+                except:
+                    text = False
         isError = False
     except Exception as error:
         if isError == False:
@@ -201,47 +213,30 @@ def main():
             update_status(status_text)
             print_err(error)
         time.sleep(5)
-    if keyboard.is_pressed("q"):
-        update_status(status_text)
 
-def getval():
-    global runn
+def getval(): #нужен для остановки функции loop
     return runn
-def lop():
+def main_loop():
     global status_text
     while(True):
         main()
         if(getval()==False):
             print("STOP")
-            update_status(status_text)
+            print(update_status(status_text))
+            print(status_text)
             RPC.clear()
             break
 def chng():
     global runn
     runn=False
 
-
-start = time.time()
-init()
-end_time = time.time()
-execution_time = end_time - start
-print(f"Время Инициализации: {execution_time} секунд")
-status_text = get_status()
-print("Зажмите q для выхода")
-prev_track = None
-i = 0
-text = False
-isError = False
-runn=False
-config = configparser.ConfigParser()
-config.read("conf.ini")
 def start_everything():
     global runn
     global prev_track
     if(not runn):
         prev_track=None
         runn=True
-        Thread(target=lop).start()
+        Thread(target=main_loop).start()
 
 def change_config_status():
     global config, var
@@ -251,6 +246,23 @@ def change_config_status():
         with open("conf.ini", "w") as configfile:
             config.write(configfile)
         settings(config)
+headers=None
+start = time.time()
+init()
+end_time = time.time()
+execution_time = end_time - start
+print(f"Время Инициализации: {execution_time} секунд")
+global status_text
+status_text = get_status()
+print("Зажмите q для выхода")
+prev_track = None
+i = 0
+text = False
+isError = False
+runn=False
+config = configparser.ConfigParser()
+config.read("conf.ini")
+
 
 
 root = tk.Tk()
@@ -258,7 +270,7 @@ root.geometry('300x300')
 
 var = tk.BooleanVar(value=config.getboolean("SETTINGS", "change_status"))
 
-checkbox1=tk.Checkbutton(root, text="change status", variable=var, command=change_config_status)
+checkbox1=tk.Checkbutton(root, text="Транслировать текст песни в статус", variable=var, command=change_config_status)
 checkbox1.pack()
 
 # checkbox1=tk.Checkbutton(root, text="change status", variable=var, command=change_config_status)
