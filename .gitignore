@@ -1,6 +1,8 @@
 *
 !main.pyw
+!main.py
 !token_ym.py
 !token_ds.py
 !start.bat
 !.gitignore
+!gui.py
