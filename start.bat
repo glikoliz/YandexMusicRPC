@@ -1,2 +1,2 @@
 @echo off
-powershell python main.py
+powershell python gui.py

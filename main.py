@@ -5,7 +5,6 @@ from datetime import datetime
 import re
 import requests
 import configparser
-import os
 import contextlib
 from threading import Thread
 import tkinter as tk
@@ -14,7 +13,6 @@ import sys
 #
 import token_ym
 import token_ds
-# import testing
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -88,8 +86,8 @@ def init():  # читает все токены
     global headers, client, RPC, config, status_text
     config = configparser.ConfigParser()
     config.read("conf.ini")
-    settings() #читает настройки с конфига
 
+    settings() #читает настройки с конфига
     GET_TOKEN_MUSIC()
     if change_status:
         GET_TOKEN_DISCORD()
@@ -248,10 +246,8 @@ def change_config_status():
     global config
     try:
         if(config.getboolean("SETTINGS", "change_status")==False):
-            print("УЕБОК ТВАРЬ")
             config.set("SETTINGS", "change_status", 'True')
         else:
-            print("НЕ УЕБОК И НЕ ТВАРЬ")
             config.set("SETTINGS", "change_status", 'False')
         with open("conf.ini", "w") as configfile:
             config.write(configfile)
@@ -267,36 +263,11 @@ def change_config_status():
 # file_path = 'log.txt'
 # sys.stdout = open(file_path, "w", encoding='UTF-8')
 # print("asdasdsa")
-if __name__ != "__main__":
-    headers=None
-    prev_track = None
-    i = 0
-    text = False
-    isError = False
-    running=False
-    init()
-# print(f"Время Инициализации: {time.time()-start} секунд")
-
-
-# config = configparser.ConfigParser()
-# config.read("conf.ini")
-
-# root = tk.Tk()
-# root.geometry('300x300')
-# root.title("Music")
-# root.protocol("WM_DELETE_WINDOW", stop_loop)
-# var = tk.BooleanVar(value=config.getboolean("SETTINGS", "change_status"))
-
-# checkbox_status=tk.Checkbutton(root, text="Транслировать текст песни в статус", variable=var, command=change_config_status)
-# checkbox_status.pack()
-
-# button_start=tk.Button(root, text="start", command=start_everything, width=15)
-# button_start.pack()
-
-# # button_stop=tk.Button(root, text="stop", command=stop_loop)
-# # button_stop.pack(side="bottom")
-# label1=tk.Label(root, text="")
-# label1.pack()
-# label2=tk.Label(root, text="")
-# label2.pack()
-# root.mainloop()
+headers=None
+prev_track = None
+i = 0
+text = False
+isError = False
+running=False
+init()
+    
