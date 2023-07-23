@@ -6,3 +6,5 @@
 !start.bat
 !.gitignore
 !gui.py
+!src
+!src/*

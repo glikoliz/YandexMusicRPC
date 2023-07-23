@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(url)
 if __name__ == "__main__":
     
-    icon_path='ok\ym.ico'
+    icon_path='src\ym.ico'
     app = QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(icon_path))
     mw = MainWindow()
