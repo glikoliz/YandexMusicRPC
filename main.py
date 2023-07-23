@@ -7,9 +7,6 @@ import requests
 import configparser
 import contextlib
 from threading import Thread
-import tkinter as tk
-import win32gui, win32con
-import sys
 #
 import token_ym
 import token_ds
@@ -209,7 +206,10 @@ def main():
             print_err(error)
         time.sleep(5)
 
-
+def play_now():
+    global last_track
+    return last_track.title
+    print()
 
 def get_running(): #нужен для остановки функции loop
     return running
@@ -257,17 +257,18 @@ def change_config_status():
         # config.set("SETTINGS", "change_status", "false")
         # print("sadasdsda")
 
-# the_program_to_hide = win32gui.GetForegroundWindow()
-# win32gui.ShowWindow(the_program_to_hide , win32con.SW_HIDE)
-
-# file_path = 'log.txt'
-# sys.stdout = open(file_path, "w", encoding='UTF-8')
-# print("asdasdsa")
-headers=None
-prev_track = None
-i = 0
-text = False
-isError = False
-running=False
-init()
-    
+if("__name__"!="__main__"):
+    headers=None
+    prev_track = None
+    i = 0
+    text = False
+    isError = False
+    running=False
+    init()
+    status_text=get_status()
+    try:
+        import win32gui, win32con
+        # the_program_to_hide = win32gui.GetForegroundWindow()
+        # win32gui.ShowWindow(the_program_to_hide , win32con.SW_HIDE)
+    except:
+        print()

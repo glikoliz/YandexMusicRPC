@@ -5,6 +5,7 @@ config = configparser.ConfigParser()
 config.read("conf.ini")
 if(len(config.get("TOKENS", "DSTOKEN"))<=5):
     os.system('pip install -r requirements.txt')
+    print("fuck off")
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
     QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp, QPushButton, QMenuBar
 from PyQt5.QtCore import QSize, QEvent, QUrl
@@ -37,7 +38,7 @@ class MainWindow(QMainWindow):
 
         self.button=QPushButton("Старт")
         grid_layout.addWidget(self.button, 2, 0)
-        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 2)
+        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
         self.button.clicked.connect(main.start_everything)
 
         self.tray_icon = QSystemTrayIcon(self)
@@ -86,7 +87,7 @@ class MainWindow(QMainWindow):
             else:
                 self.hide()
     def open_link(self):
-        url = QUrl('https://github.com/glikoliz/music')
+        url = QUrl('https://github.com/glikoliz/YandexMusicRPC')
         QDesktopServices.openUrl(url)
 if __name__ == "__main__":
     

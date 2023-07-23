@@ -8,3 +8,5 @@
 !gui.py
 !src
 !src/*
+!requirements.txt
+!conf.ini
