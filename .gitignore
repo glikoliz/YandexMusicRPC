@@ -9,4 +9,4 @@
 !src
 !src/*
 !requirements.txt
-!conf.ini
+!*.pyw
