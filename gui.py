@@ -1,17 +1,10 @@
 import sys
-import os
 import configparser
-config = configparser.ConfigParser()
-config.read("conf.ini")
-if(len(config.get("TOKENS", "DSTOKEN"))<=5):
-    os.system('pip install -r requirements.txt')
-    print("fuck off")
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QGridLayout, QWidget, QCheckBox, QSystemTrayIcon, \
     QSpacerItem, QSizePolicy, QMenu, QAction, QStyle, qApp, QPushButton, QMenuBar
 from PyQt5.QtCore import QSize, QEvent, QUrl
 from PyQt5 import QtGui
 from PyQt5.QtGui import QDesktopServices
-import main
 class MainWindow(QMainWindow):
     def __init__(self):
         config = configparser.ConfigParser()
@@ -32,14 +25,18 @@ class MainWindow(QMainWindow):
 
         self.check_box = QCheckBox('Транслировать текст песни в статус')
         self.check_box.setChecked(check_box)
-        self.check_box.clicked.connect(main.change_config_status)
+        # self.check_box.clicked.connect(main.change_config_status)
         grid_layout.addWidget(self.check_box, 1, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 2, 0)
 
-        self.button=QPushButton("Старт")
-        grid_layout.addWidget(self.button, 2, 0)
+        self.main_button=QPushButton("Старт")
+        grid_layout.addWidget(self.main_button, 2, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
-        self.button.clicked.connect(main.start_everything)
+
+        self.stop_button=QPushButton("Стоп")
+        grid_layout.addWidget(self.stop_button, 3, 0)
+        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
+        # self.button.clicked.connect(main.start_everything)
 
         self.tray_icon = QSystemTrayIcon(self)
         quit_action = QAction("Закрыть", self)
@@ -56,11 +53,14 @@ class MainWindow(QMainWindow):
         menuBar.addAction(action)
         self.setMenuBar(menuBar)
         action.triggered.connect(self.open_link)
+        self.app_name_action = QAction("My App", self)
+        self.app_name_action.setEnabled(False)
+        # self.menu.addAction(self.app_name_action)
         
     # Переопределение метода closeEvent, для перехвата события закрытия окна
-    def closeEvent(self, event):
+    # def closeEvent(self, event):
         # event.ignore()
-        main.stop_loop()
+        # main.stop_loop()
     def changeEvent(self, event):
         # Проверяем, было ли изменено состояние окна (в том числе сворачивание)
         if event.type() == QEvent.WindowStateChange:

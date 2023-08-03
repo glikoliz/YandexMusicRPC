@@ -7,9 +7,14 @@ import requests
 import configparser
 import contextlib
 from threading import Thread
+import sys
 #
 import token_ym
 import token_ds
+import gui
+#
+from PyQt5.QtWidgets import QApplication
+from PyQt5 import QtGui
 #
 def time_to_milliseconds(time_string):
     match = re.search(r"\[(\d{2}):(\d{2}).(\d{2})\]", time_string)
@@ -45,7 +50,7 @@ def update_presence(track):  # Обновляет статус активнос�
     #     )
 
 
-def GET_TOKEN_DISCORD(): #получает дс токен и записывает в конфиг
+def GET_TOKEN_DISCORD():  # получает дс токен и записывает в конфиг
     if len(config.get("TOKENS", "DSToken")) <= 5:
         print("ДС токен не обнаружен")
         dst = ""
@@ -68,9 +73,9 @@ def GET_TOKEN_DISCORD(): #получает дс токен и записывае
                 config.write(configfile)
 
 
-def GET_TOKEN_MUSIC(): #получает токен ям и записывает в конфиг
+def GET_TOKEN_MUSIC():  # получает токен ям и записывает в конфиг
     if len(config.get("TOKENS", "MusicClient")) <= 5:
-        print("Ключа нема")
+        print("Ключ Яндекс музыки не обнаружен")
         try:
             config.set("TOKENS", "MusicClient", token_ym.get_token())
             with open("conf.ini", "w") as configfile:
@@ -84,7 +89,7 @@ def init():  # читает все токены
     config = configparser.ConfigParser()
     config.read("conf.ini")
 
-    settings() #читает настройки с конфига
+    settings()  # читает настройки с конфига
     GET_TOKEN_MUSIC()
     if change_status:
         GET_TOKEN_DISCORD()
@@ -92,7 +97,7 @@ def init():  # читает все токены
             "Authorization": config.get("TOKENS", "DSToken"),
         }
     else:
-        headers=None
+        headers = None
     RPC = Presence(config.get("TOKENS", "DSPresence"))
     RPC.connect()
     with contextlib.redirect_stdout(None):
@@ -100,7 +105,7 @@ def init():  # читает все токены
     status_text = get_status()
 
 
-def update_status(text): #обновляет статус
+def update_status(text):
     global headers
     try:
         if change_status and headers:
@@ -118,7 +123,7 @@ def print_err(error):
     print(f"Ошибка: {str(error)} // {str(datetime.now()).split('.')[0]}")
 
 
-def get_status(): #получает текущий статус(до изменений)
+def get_status():  # получает текущий статус(до изменений)
     if change_status:
         def_status = requests.get(
             "https://discord.com/api/v9/users/@me/settings", headers=headers
@@ -140,15 +145,15 @@ def settings():
         change_status = config.getboolean("SETTINGS", "change_status")
         get_log = config.getboolean("SETTINGS", "get_log")
         # print(headers=="{'Authorization': ''}")
-        if(change_status and headers==None):
+        if change_status and headers == None:
             GET_TOKEN_DISCORD()
             headers = {
                 "Authorization": config.get("TOKENS", "DSToken"),
             }
         # print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
-        change_status=False
-        get_log=False
+        change_status = False
+        get_log = False
         print("Не получилось получить значения из conf.ini")
 
 
@@ -156,13 +161,9 @@ def main():
     global isError, last_track, prev_track, lyrics, mil, text, start, execution_time, i
     try:
         last_track = (
-            client.queue(client.queues_list()[0].id)
-            .get_current_track()
-            .fetch_track()
+            client.queue(client.queues_list()[0].id).get_current_track().fetch_track()
         )
-        if prev_track != last_track: #если трек меняется
-            # testing.MainWindow.setlabel('Hitler')
-            # label1.config(text=f"Сейчас играет - {last_track.title}")
+        if prev_track != last_track:
             start = time.time()
             Thread(target=update_presence, args=[last_track]).start()
             if change_status:
@@ -171,19 +172,16 @@ def main():
                     lyrics = last_track.get_lyrics("LRC").fetch_lyrics().split("\n")
                     mil = time_to_milliseconds(lyrics[0])
                     text = True
-                    # label2.config(text="")
                 except:
                     text = False
-                    # label2.config(text="У данной песни отсутствует текст")
                     if get_log:
                         print("У данной песни отсутствует текст")
             prev_track = last_track
             i = 0
             end_time = time.time()
             execution_time = end_time - start
-            # label2.config(text=f"Время выполнения: {round(execution_time, 4)} секунд")
             print(f"Время выполнения: {round(execution_time, 4)} секунд")
-        if change_status and text: #транслирует текст в статус
+        if change_status and text:  # транслирует текст в статус
             now = time.time()
             if (now - start + execution_time + 0.5) * 1000 > mil:
                 try:
@@ -206,29 +204,34 @@ def main():
             print_err(error)
         time.sleep(5)
 
+
 def play_now():
     global last_track
     return last_track.title
-    print()
 
-def get_running(): #нужен для остановки функции loop
+
+def get_running():  # нужен для остановки функции loop
     return running
+
+
 def main_loop():
     global status_text
-    while(True):
+    while True:
         main()
-        if(get_running()==False):
+        if get_running() == False:
             # print("STOP")
             # print(update_status(status_text))
             # print(status_text)
             RPC.clear()
             break
+
+
 def stop_loop():
     global running
-    running=False
+    running = False
     # label1.config(text="")
     # label2.config(text="")
-    if(change_status):
+    if change_status:
         update_status(status_text)
     # root.destroy()
 
@@ -237,38 +240,43 @@ def start_everything():
     global running
     global prev_track
     # label1.config(text="Начинаем")
-    if(not running):
-        prev_track=None
-        running=True
+    if not running:
+        prev_track = None
+        running = True
         Thread(target=main_loop).start()
+
 
 def change_config_status():
     global config
     try:
-        if(config.getboolean("SETTINGS", "change_status")==False):
-            config.set("SETTINGS", "change_status", 'True')
+        if config.getboolean("SETTINGS", "change_status") == False:
+            config.set("SETTINGS", "change_status", "True")
         else:
-            config.set("SETTINGS", "change_status", 'False')
+            config.set("SETTINGS", "change_status", "False")
         with open("conf.ini", "w") as configfile:
             config.write(configfile)
         settings()
     except Exception as error:
         print_err(error)
-        # config.set("SETTINGS", "change_status", "false")
-        # print("sadasdsda")
 
-if("__name__"!="__main__"):
-    headers=None
-    prev_track = None
-    i = 0
-    text = False
-    isError = False
-    running=False
-    init()
-    status_text=get_status()
-    try:
-        import win32gui, win32con
-        the_program_to_hide = win32gui.GetForegroundWindow()
-        win32gui.ShowWindow(the_program_to_hide , win32con.SW_HIDE)
-    except:
-        print("Перезапустите программу")
+headers = None
+prev_track = None
+i = 0
+text = False
+isError = False
+running = False
+init()
+status_text = get_status()
+
+icon_path = "src\ym.ico"
+app = QApplication(sys.argv)
+app.setWindowIcon(QtGui.QIcon(icon_path))
+mw = gui.MainWindow()
+mw.main_button.clicked.connect(start_everything)
+mw.check_box.clicked.connect(change_config_status)
+mw.stop_button.clicked.connect(stop_loop)
+mw.tray_icon.setIcon(QtGui.QIcon(icon_path))
+mw.closeEvent = lambda self: stop_loop()
+mw.show()
+
+sys.exit(app.exec())
