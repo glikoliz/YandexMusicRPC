@@ -32,10 +32,6 @@ class MainWindow(QMainWindow):
         self.main_button=QPushButton("Старт")
         grid_layout.addWidget(self.main_button, 2, 0)
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
-
-        self.stop_button=QPushButton("Стоп")
-        grid_layout.addWidget(self.stop_button, 3, 0)
-        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
         # self.button.clicked.connect(main.start_everything)
 
         self.tray_icon = QSystemTrayIcon(self)
