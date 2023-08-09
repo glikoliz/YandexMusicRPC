@@ -34,6 +34,11 @@ class MainWindow(QMainWindow):
         grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
         # self.button.clicked.connect(main.start_everything)
 
+        self.loglabel=QLabel("")
+        grid_layout.addWidget(self.loglabel, 3, 0)
+        grid_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Expanding), 3, 0)
+
+
         self.tray_icon = QSystemTrayIcon(self)
         quit_action = QAction("Закрыть", self)
         quit_action.triggered.connect(qApp.quit) 

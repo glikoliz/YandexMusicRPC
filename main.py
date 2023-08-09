@@ -1,10 +1,15 @@
+import configparser
+import os
+config = configparser.ConfigParser()
+config.read("conf.ini")
+if(len(config.get("TOKENS", "MUSICCLIENT"))<=5):
+    os.system('pip install -r requirements.txt')
 from pypresence import Presence
 import time
 from yandex_music import Client
 from datetime import datetime
 import re
 import requests
-import configparser
 import contextlib
 from threading import Thread
 import sys
@@ -44,10 +49,6 @@ def update_presence(track):  # Обновляет статус активнос�
         start=dstart,
         end=dsend,
     )
-    # if get_log:
-    #     print(
-    #         f"Новый трек: {track.artists_name()[0]} - {track['title']} // {str(datetime.now()).split('.')[0]}"
-    #     )
 
 
 def GET_TOKEN_DISCORD():  # получает дс токен и записывает в конфиг
@@ -140,10 +141,10 @@ def get_status():  # получает текущий статус(до изме�
 
 
 def settings():
-    global change_status, get_log, headers
+    global change_status, headers
     try:
         change_status = config.getboolean("SETTINGS", "change_status")
-        get_log = config.getboolean("SETTINGS", "get_log")
+        # get_log = config.getboolean("SETTINGS", "get_log")
         # print(headers=="{'Authorization': ''}")
         if change_status and headers == None:
             GET_TOKEN_DISCORD()
@@ -153,7 +154,7 @@ def settings():
         # print(f"Обновление статуса: {change_status}\nВедение лога: {get_log}")
     except:
         change_status = False
-        get_log = False
+        # get_log = False
         print("Не получилось получить значения из conf.ini")
 
 
@@ -174,8 +175,8 @@ def main():
                     text = True
                 except:
                     text = False
-                    if get_log:
-                        print("У данной песни отсутствует текст")
+                    # if get_log:
+                    #     print("У данной песни отсутствует текст")
             prev_track = last_track
             i = 0
             end_time = time.time()
@@ -216,6 +217,8 @@ def get_running():  # нужен для остановки функции loop
 
 def main_loop():
     global status_text
+    global mw
+    mw.loglabel.setText("jopaa")
     while True:
         main()
         if get_running() == False:
